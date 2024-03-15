@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "@tensorflow/tfjs-node": "^4.17.0",
+    "csv-parser": "^3.0.0"
+  }
+}
