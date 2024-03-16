@@ -1,6 +1,6 @@
 const fs = require("fs");
 const csv = require("csv-parser");
-const tf = require("@tensorflow/tfjs-node");
+const tf = require("@tensorflow/tfjs-node-gpu");
 
 function createVocabulary(reviews) {
   const vocabulary = new Set();
@@ -52,31 +52,82 @@ function compileModel(model) {
 
 function createModel(vocabSize, inputLength) {
   const model = tf.sequential();
+
   model.add(
     tf.layers.embedding({
       inputDim: vocabSize,
-      outputDim: 50,
+      outputDim: 45,
+      maskZero: true,
       inputLength: inputLength,
     })
   );
-  model.add(tf.layers.flatten());
-  model.add(tf.layers.dense({ units: 64, activation: "relu" }));
-  model.add(tf.layers.dense({ units: 3, activation: "softmax" }));
+
+  model.add(
+    tf.layers.lstm({
+      units: 100,
+    })
+  );
+
+  model.add(
+    tf.layers.dropout({
+      rate: 0.2,
+    })
+  );
+
+  model.add(
+    tf.layers.dense({
+      units: 100,
+      activation: "relu",
+    })
+  );
+
+  model.add(
+    tf.layers.dense({
+      units: 64,
+      activation: "relu",
+    })
+  );
+
+  model.add(
+    tf.layers.dense({
+      units: 32,
+      activation: "relu",
+    })
+  );
+
+  model.add(
+    tf.layers.dense({
+      units: 3,
+      activation: "softmax",
+    })
+  );
 
   return model;
 }
 
-async function trainModel(paddedReviewsTensor, sentimentLabels, vocabSize, inputLength) {
+async function trainModel(
+  paddedReviewsTensor,
+  sentimentLabels,
+  vocabSize,
+  inputLength
+) {
   const model = createModel(vocabSize, inputLength);
   compileModel(model);
+
+  const logs = "./logs";
+  const tensorBoardCallback = tf.node.tensorBoard(logs, {
+    updateFreq: "epoch",
+    histogramFreq: 1,
+  });
 
   await model.fit(paddedReviewsTensor, sentimentLabels, {
     batchSize: 32,
     epochs: 10,
     validationSplit: 0.2,
+    callbacks: [tensorBoardCallback],
   });
 
-  await model.save('file://./sentiment_model');
+  await model.save("file://./sentiment_model");
 }
 
 module.exports = {
@@ -87,5 +138,5 @@ module.exports = {
   convertSentimentToLabel,
   tokenizeAndMapReviews,
   tokenizeReviews,
-  createVocabulary
+  createVocabulary,
 };
