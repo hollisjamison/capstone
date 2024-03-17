@@ -56,29 +56,14 @@ function createModel(vocabSize, inputLength) {
   model.add(
     tf.layers.embedding({
       inputDim: vocabSize,
-      outputDim: 45,
+      outputDim: 32,
       maskZero: true,
       inputLength: inputLength,
     })
   );
 
   model.add(
-    tf.layers.lstm({
-      units: 100,
-    })
-  );
-
-  model.add(
-    tf.layers.dropout({
-      rate: 0.2,
-    })
-  );
-
-  model.add(
-    tf.layers.dense({
-      units: 100,
-      activation: "relu",
-    })
+    tf.layers.globalAveragePooling1d()
   );
 
   model.add(
@@ -89,9 +74,8 @@ function createModel(vocabSize, inputLength) {
   );
 
   model.add(
-    tf.layers.dense({
-      units: 32,
-      activation: "relu",
+    tf.layers.dropout({
+      rate: 0.2,
     })
   );
 
@@ -122,7 +106,7 @@ async function trainModel(
 
   await model.fit(paddedReviewsTensor, sentimentLabels, {
     batchSize: 32,
-    epochs: 10,
+    epochs: 20,
     validationSplit: 0.2,
     callbacks: [tensorBoardCallback],
   });
